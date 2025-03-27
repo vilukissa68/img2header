@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 pub struct CHeader {
     name: String,
-    data: Vec<u8>,
+    data: Vec<i64>,
     width: u32,
     height: u32,
     channels: u32,
@@ -19,7 +19,7 @@ pub struct CHeader {
 impl CHeader {
     pub fn new(
         name: String,
-        data: Vec<u8>,
+        data: Vec<i64>,
         width: u32,
         height: u32,
         channels: u32,
@@ -128,13 +128,13 @@ impl CHeader {
     }
 
     /// Write a single data element to the header file in hexadecimal format
-    fn write_data_element_hex(&mut self, hex: u8) {
+    fn write_data_element_hex(&mut self, hex: i64) {
         self.str_stream.push_str("0x");
         self.str_stream.push_str(&format!("{:02x}", hex));
     }
 
     /// Write a single data element to the header file in decimal format
-    fn write_data_element_dec(&mut self, dec: u8) {
+    fn write_data_element_dec(&mut self, dec: i64) {
         if dec < 10 {
             self.str_stream.push_str(&format!("{:1}", dec));
         } else if dec < 100 {

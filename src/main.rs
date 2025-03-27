@@ -11,7 +11,7 @@ pub use crate::transform::{resize, to_gray};
 struct Args {
     /// Output type of data
     #[arg(short, long, default_value = "uint8_t")]
-    data_type: Option<String>,
+    data_type: String,
     /// Whether to make the data static
     #[arg(long, default_value = "false")]
     static_attr: bool,
@@ -96,19 +96,27 @@ fn main() {
     img = parse_transformation(img, &args);
 
     let channels;
-    let data;
+    let mut data: Vec<i64>;
     if args.grayscale {
         let img = img.to_luma8();
         channels = 1;
-        data = img.pixels().map(|p| vec![p[0]]).flatten().collect();
+        data = img.as_raw().iter().map(|x| *x as i64).collect();
     } else {
         let img = img.to_rgb8();
         channels = 3;
         data = img
             .pixels()
-            .map(|p| vec![p[0], p[1], p[2]])
-            .flatten()
+            .flat_map(|p| vec![p[0] as i64, p[1] as i64, p[2] as i64])
             .collect();
+    }
+
+    // If data type is signed adjust the values
+    if args.data_type == "int8_t" {
+        data = data.iter().map(|x| x.wrapping_sub(128)).collect();
+    } else if args.data_type == "int16_t" {
+        data = data.iter().map(|x| x.wrapping_sub(128)).collect();
+    } else if args.data_type == "int32_t" {
+        data = data.iter().map(|x| x.wrapping_sub(128)).collect();
     }
 
     // Print verbose information
@@ -130,7 +138,7 @@ fn main() {
         channels,
         args.static_attr,
         args.const_attr,
-        args.data_type.unwrap_or("uint8_t".to_string()),
+        args.data_type.clone(),
         args.output.clone(),
         args.hex,
     );
