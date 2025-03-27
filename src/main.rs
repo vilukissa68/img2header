@@ -9,9 +9,6 @@ pub use crate::transform::{resize, to_gray};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct Args {
-    /// Path to file to convert
-    #[arg(short, long)]
-    file: String,
     /// Output type of data
     #[arg(short, long, default_value = "uint8_t")]
     data_type: Option<String>,
@@ -39,6 +36,11 @@ struct Args {
     /// Write output data in hexadicimal format
     #[arg(long, default_value = "false")]
     hex: bool,
+    /// Verbose output
+    #[arg(short, long)]
+    verbose: bool,
+    /// Path to file to convert
+    file: String,
 }
 
 fn open_image(file: &str) -> DynamicImage {
@@ -74,27 +76,68 @@ fn parse_transformation(img: DynamicImage, args: &Args) -> DynamicImage {
 
 fn main() {
     let args = Args::parse();
-    let img = open_image(&args.file);
 
-    let img = parse_transformation(img, &args);
+    if args.verbose {
+        println!("Opening image {}", args.file);
+    }
 
-    let mut header = CHeader::new(
-        args.name,
-        img.to_rgb8()
+    let mut img = open_image(&args.file);
+
+    if args.verbose {
+        println!(
+            "Image: {}x{}x{}",
+            img.dimensions().0,
+            img.dimensions().1,
+            img.color().channel_count()
+        );
+        println!("Transforming image...");
+    }
+
+    img = parse_transformation(img, &args);
+
+    let channels;
+    let data;
+    if args.grayscale {
+        let img = img.to_luma8();
+        channels = 1;
+        data = img.pixels().map(|p| vec![p[0]]).flatten().collect();
+    } else {
+        let img = img.to_rgb8();
+        channels = 3;
+        data = img
             .pixels()
             .map(|p| vec![p[0], p[1], p[2]])
             .flatten()
-            .collect(),
+            .collect();
+    }
+
+    // Print verbose information
+    if args.verbose {
+        println!(
+            "Image: {}x{}x{}",
+            img.dimensions().0,
+            img.dimensions().1,
+            channels,
+        );
+        println!("Creating header file...");
+    }
+
+    let mut header = CHeader::new(
+        args.name,
+        data,
         img.dimensions().0,
         img.dimensions().1,
-        img.color().channel_count() as u32,
+        channels,
         args.static_attr,
         args.const_attr,
         args.data_type.unwrap_or("uint8_t".to_string()),
-        args.output,
+        args.output.clone(),
         args.hex,
     );
     header.write_header();
     let _ = header.write_to_file();
+    if args.verbose {
+        println!("Header file written to {}", args.output);
+    }
     println!("Done!");
 }

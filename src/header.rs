@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::{Path, PathBuf};
 
 pub struct CHeader {
     name: String,
@@ -11,7 +12,7 @@ pub struct CHeader {
     const_attr: bool,
     data_type: String,
     str_stream: String,
-    output_path: String,
+    output_path: PathBuf,
     write_hex: bool,
 }
 
@@ -25,15 +26,23 @@ impl CHeader {
         static_attr: bool,
         const_attr: bool,
         data_type: String,
-        output_path: String,
+        output_path: impl AsRef<Path>,
         write_hex: bool,
     ) -> Self {
+        let output_path = output_path.as_ref().to_path_buf();
+
         // If no name for the variable is given, use the name of the output file
         let var_name = match name.chars().count() {
-            0 => output_path.clone(),
+            0 => output_path
+                .file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
             _ => name,
         };
 
+        println!("Var name: {}", var_name);
         Self {
             name: var_name,
             data,
@@ -145,7 +154,7 @@ impl CHeader {
 
     /// Write contents of the string stream to a file
     pub fn write_to_file(&self) -> std::io::Result<()> {
-        let mut file = File::create(format!("{output_path}.h", output_path = self.output_path))?;
+        let mut file = File::create(self.output_path.clone())?;
         file.write_all(self.str_stream.as_bytes())?;
         Ok(())
     }
