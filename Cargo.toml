@@ -1,0 +1,13 @@
+[package]
+name = "img2header"
+version = "0.1.0"
+edition = "2021"
+description = "Tool for generating C data headers from image files"
+
+[dependencies]
+clap = { version = "4.5.32", features = ["derive"] }
+image = "0.25.6"
+
+[[bin]]
+name = "img2header"
+path = "src/main.rs"
