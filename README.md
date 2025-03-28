@@ -18,13 +18,13 @@ Img2header supports the following file types: `.bmp .jpg .png .gif .tiff`
 
 ## Specifying output format
 The generated output can be adjusted with additional arguments.
-### Data type
-By default, img2header writes output as `uint8_t`. The data type can be changed using the `--data-type` argument.
-```sh
-img2header -o image.h --data-type int32_t image.jpg
-```
 ### Grayscale
 Img2header will retain the color channels present in the input image. However, a grayscale output can be generated with
 ```sh
 img2header -o image.h --grayscale image.jpg
+```
+### Grayscale
+To maintain alpha channel information use `alpha-channel` flag. This will also add opaque alpha channel if no alpha channel information is present in the input. Not compatible with `grayscale` flag.
+```sh
+img2header -o image.h --alpha-channel image.jpg
 ```

@@ -1,10 +1,12 @@
+use std::any::TypeId;
+use std::fmt::{Display, LowerHex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-pub struct CHeader {
+pub struct CHeader<T> {
     name: String,
-    data: Vec<i64>,
+    data: Vec<T>,
     width: u32,
     height: u32,
     channels: u32,
@@ -16,10 +18,13 @@ pub struct CHeader {
     write_hex: bool,
 }
 
-impl CHeader {
+impl<T> CHeader<T>
+where
+    T: Display + Copy + Into<i64> + LowerHex + PartialOrd + 'static,
+{
     pub fn new(
         name: String,
-        data: Vec<i64>,
+        data: Vec<T>,
         width: u32,
         height: u32,
         channels: u32,
@@ -128,19 +133,32 @@ impl CHeader {
     }
 
     /// Write a single data element to the header file in hexadecimal format
-    fn write_data_element_hex(&mut self, hex: i64) {
+    fn write_data_element_hex(&mut self, value: T) {
         self.str_stream.push_str("0x");
-        self.str_stream.push_str(&format!("{:02x}", hex));
+        let type_id = TypeId::of::<T>();
+        if type_id == TypeId::of::<i8>() || type_id == TypeId::of::<u8>() {
+            self.str_stream
+                .push_str(&format!("{:02x}", value.into() as u8));
+        } else if type_id == TypeId::of::<i16>() || type_id == TypeId::of::<u16>() {
+            self.str_stream
+                .push_str(&format!("{:04x}", value.into() as u16));
+        } else if type_id == TypeId::of::<i32>() || type_id == TypeId::of::<u32>() {
+            self.str_stream
+                .push_str(&format!("{:08x}", value.into() as u32));
+        } else {
+            self.str_stream.push_str(&format!("{:x}", value));
+        }
     }
 
     /// Write a single data element to the header file in decimal format
-    fn write_data_element_dec(&mut self, dec: i64) {
-        if dec < 10 {
-            self.str_stream.push_str(&format!("{:1}", dec));
-        } else if dec < 100 {
-            self.str_stream.push_str(&format!("{:1}", dec));
+    fn write_data_element_dec(&mut self, value: T) {
+        let as_i64 = value.into();
+        if as_i64 < 10 {
+            self.str_stream.push_str(&format!("{:1}", as_i64));
+        } else if as_i64 < 100 {
+            self.str_stream.push_str(&format!("{:2}", as_i64));
         } else {
-            self.str_stream.push_str(&format!("{:3}", dec));
+            self.str_stream.push_str(&format!("{:3}", as_i64));
         }
     }
 

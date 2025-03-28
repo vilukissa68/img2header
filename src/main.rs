@@ -39,12 +39,15 @@ struct Args {
     /// Verbose output
     #[arg(short, long)]
     verbose: bool,
+    /// Add alpha channel
+    #[arg(short, long, default_value = "false")]
+    alpha_channel: bool,
     /// Path to file to convert
     file: String,
 }
 
 fn open_image(file: &str) -> DynamicImage {
-    let image = image::open(file).unwrap();
+    let image = image::open(file).expect("Failed to open image");
     image
 }
 
@@ -61,17 +64,29 @@ fn parse_transformation(img: DynamicImage, args: &Args) -> DynamicImage {
         _ => args.height,
     };
 
-    img = img.resize(
+    let resized = img.resize(
         target_width,
         target_height,
         image::imageops::FilterType::Nearest,
     );
 
     if args.grayscale {
-        img = img.grayscale();
+        resized.grayscale()
+    } else {
+        resized
     }
+}
 
-    img
+fn extract_pixel_data(img: &DynamicImage, grayscale: bool, alpha: bool) -> Vec<u8> {
+    if grayscale {
+        img.to_luma8().into_raw()
+    } else {
+        if alpha {
+            img.to_rgba8().into_raw()
+        } else {
+            img.to_rgb8().into_raw()
+        }
+    }
 }
 
 fn main() {
@@ -95,29 +110,15 @@ fn main() {
 
     img = parse_transformation(img, &args);
 
-    let channels;
-    let mut data: Vec<i64>;
-    if args.grayscale {
-        let img = img.to_luma8();
-        channels = 1;
-        data = img.as_raw().iter().map(|x| *x as i64).collect();
-    } else {
-        let img = img.to_rgb8();
-        channels = 3;
-        data = img
-            .pixels()
-            .flat_map(|p| vec![p[0] as i64, p[1] as i64, p[2] as i64])
-            .collect();
-    }
+    let width = img.width();
+    let height = img.height();
+    let channels = match (args.grayscale, args.alpha_channel) {
+        (true, _) => 1,
+        (false, false) => 3,
+        (false, true) => 4,
+    };
 
-    // If data type is signed adjust the values
-    if args.data_type == "int8_t" {
-        data = data.iter().map(|x| x.wrapping_sub(128)).collect();
-    } else if args.data_type == "int16_t" {
-        data = data.iter().map(|x| x.wrapping_sub(128)).collect();
-    } else if args.data_type == "int32_t" {
-        data = data.iter().map(|x| x.wrapping_sub(128)).collect();
-    }
+    let data = extract_pixel_data(&img, args.grayscale, args.alpha_channel);
 
     // Print verbose information
     if args.verbose {
@@ -133,8 +134,8 @@ fn main() {
     let mut header = CHeader::new(
         args.name,
         data,
-        img.dimensions().0,
-        img.dimensions().1,
+        width,
+        height,
         channels,
         args.static_attr,
         args.const_attr,
