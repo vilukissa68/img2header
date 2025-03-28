@@ -47,13 +47,10 @@ struct Args {
 }
 
 fn open_image(file: &str) -> DynamicImage {
-    let image = image::open(file).expect("Failed to open image");
-    image
+    image::open(file).expect("Failed to open image")
 }
 
 fn parse_transformation(img: DynamicImage, args: &Args) -> DynamicImage {
-    let mut img = img;
-
     let target_width = match args.width {
         0 => img.width(),
         _ => args.width,
@@ -80,12 +77,10 @@ fn parse_transformation(img: DynamicImage, args: &Args) -> DynamicImage {
 fn extract_pixel_data(img: &DynamicImage, grayscale: bool, alpha: bool) -> Vec<u8> {
     if grayscale {
         img.to_luma8().into_raw()
+    } else if alpha {
+        img.to_rgba8().into_raw()
     } else {
-        if alpha {
-            img.to_rgba8().into_raw()
-        } else {
-            img.to_rgb8().into_raw()
-        }
+        img.to_rgb8().into_raw()
     }
 }
 
@@ -137,6 +132,7 @@ fn main() {
         width,
         height,
         channels,
+        args,
         args.static_attr,
         args.const_attr,
         args.data_type.clone(),

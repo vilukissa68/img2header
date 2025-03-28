@@ -126,7 +126,7 @@ where
                     }
                     self.str_stream.push_str(", ");
                 }
-                self.str_stream.push_str("\n");
+                self.str_stream.push('\n');
             }
         }
         self.str_stream.push_str("};\n");
