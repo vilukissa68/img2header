@@ -16,6 +16,7 @@ pub struct CHeader<T> {
     str_stream: String,
     output_path: PathBuf,
     write_hex: bool,
+    link_section: String,
 }
 
 impl<T> CHeader<T>
@@ -33,6 +34,7 @@ where
         data_type: String,
         output_path: impl AsRef<Path>,
         write_hex: bool,
+        link_section: String,
     ) -> Self {
         let output_path = output_path.as_ref().to_path_buf();
 
@@ -60,6 +62,7 @@ where
             str_stream: String::new(),
             output_path,
             write_hex,
+            link_section,
         }
     }
 
@@ -101,6 +104,13 @@ where
             "// size of data: {total_size}\n",
             total_size = self.width * self.height * self.channels
         ));
+
+        if self.link_section != "" {
+            self.str_stream.push_str(&format!(
+                "__attribute__((section(\"{section}\")))\n",
+                section = self.link_section
+            ));
+        }
 
         if self.static_attr {
             self.str_stream.push_str("static ");

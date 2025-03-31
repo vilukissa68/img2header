@@ -39,6 +39,9 @@ struct Args {
     /// Verbose output
     #[arg(short, long)]
     verbose: bool,
+    /// Link to section
+    #[arg(short, long, default_value = "")]
+    link_section: String,
     /// Add alpha channel
     #[arg(short, long, default_value = "false")]
     alpha_channel: bool,
@@ -132,12 +135,12 @@ fn main() {
         width,
         height,
         channels,
-        args,
         args.static_attr,
         args.const_attr,
         args.data_type.clone(),
         args.output.clone(),
         args.hex,
+        args.link_section,
     );
     header.write_header();
     let _ = header.write_to_file();
